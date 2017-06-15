@@ -12,6 +12,8 @@
 
     <color name="grey">#E5E5E5</color>
 
+    <color name="background">#FF424242</color>
+
     <color name="md_red_50">#FFEBEE</color>
     <color name="md_red_100">#FFCDD2</color>
     <color name="md_red_200">#EF9A9A</color>

@@ -8,22 +8,24 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PointF;
 import android.graphics.RectF;
+import android.os.Build;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 
 import com.bruce.bezier.R;
+import com.bruce.bezier.utils.DisplayUtil;
 
+import java.lang.reflect.Array;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 
 /**
- *
+ * 贝塞尔曲线
  * Created by huazh on 2017/6/12.
  */
 public class BezierView extends View {
-
-    private static final String TAG = "BezierView";
 
     /**控制点的半径 */
     private static final int DEFAULT_POINT_RADIUS = 30;
@@ -31,8 +33,8 @@ public class BezierView extends View {
     private static final int DEFAULT_LINE_WIDTH = 6;
     /**触控合法区域宽度 */
     private static final int TOUCH_REGION_WIDTH = 50;
-    /**手指矩形区域 */
-    private static final int FINGER_RECT_SIZE = 40;
+    /**坐标间隔 */
+    private static final float COORDINATE_TEXT_SPACING = 40;
 
     /**贝塞尔曲线在单位1的时间下等分数 */
     public static final float UNIT_EQUAL_PARTS = 1000;
@@ -68,7 +70,7 @@ public class BezierView extends View {
     private Path mPath;
 
     /**控制点集合坐标 */
-    private final ArrayList<PointF> mControlPoints = new ArrayList<>();;
+    private final ArrayList<PointF> mControlPoints = new ArrayList<>();
 
     /**贝塞尔点集合坐标 */
     private ArrayList<PointF> mBezierPoints = null;
@@ -97,22 +99,26 @@ public class BezierView extends View {
         mPathPaint.setAntiAlias(true);
         mPathPaint.setStyle(Paint.Style.STROKE);
         mPathPaint.setStrokeWidth(DEFAULT_LINE_WIDTH);
-        mPathPaint.setColor(getResources().getColor(R.color.red_500));
+        mPathPaint.setColor(getColor(R.color.red_500));
 
         mPointPaint1 = new Paint();
         mPointPaint1.setAntiAlias(true);
         mPointPaint1.setStyle(Paint.Style.FILL);
-        mPointPaint1.setColor(getResources().getColor(R.color.deep_purple_500));
+        mPointPaint1.setColor(getColor(R.color.deep_purple_500));
+        mPointPaint1.setTextSize(DisplayUtil.sp2px(getContext(), 14));
 
         mPointPaint2 = new Paint();
         mPointPaint2.setAntiAlias(true);
         mPointPaint2.setStyle(Paint.Style.FILL);
-        mPointPaint2.setColor(getResources().getColor(R.color.blue_500));
+        mPointPaint2.setColor(getColor(R.color.blue_500));
+        mPointPaint2.setTextSize(DisplayUtil.sp2px(getContext(), 14));
+
 
         mPointPaint3 = new Paint();
         mPointPaint3.setAntiAlias(true);
         mPointPaint3.setStyle(Paint.Style.FILL);
-        mPointPaint3.setColor(getResources().getColor(R.color.light_green_500));
+        mPointPaint3.setColor(getColor(R.color.light_green_500));
+        mPointPaint3.setTextSize(DisplayUtil.sp2px(getContext(), 14));
 
         mCoordinatePaint = new Paint();
         mCoordinatePaint.setAntiAlias(true);
@@ -131,7 +137,7 @@ public class BezierView extends View {
         mControlLinePaint.setAntiAlias(true);
         mControlLinePaint.setStyle(Paint.Style.STROKE);
         mControlLinePaint.setStrokeWidth(DEFAULT_LINE_WIDTH - 2);
-        mControlLinePaint.setColor(getResources().getColor(R.color.md_teal_500));
+        mControlLinePaint.setColor(getColor(R.color.md_teal_500));
 
         mPath = new Path();
 
@@ -139,6 +145,16 @@ public class BezierView extends View {
         for (int i = 0; i < 5; i++) {
             mControlPoints.add(new PointF());
         }
+    }
+
+    /**
+     * X坐标转换，从自定义X轴坐标转换为canvas的X轴坐标
+     * 需要在onMeasure后使用
+     * @param x 自定义X坐标
+     * @return canvas X坐标
+     */
+    private float parseX(float x) {
+        return DEFAULT_POINT_RADIUS + x;
     }
 
     /**
@@ -152,13 +168,31 @@ public class BezierView extends View {
     }
 
     /**
-     * X坐标转换，从自定义X轴坐标转换为canvas的X轴坐标
-     * 需要在onMeasure后使用
-     * @param x 自定义X坐标
-     * @return canvas X坐标
+     * canvas的X坐标转换为自定义X坐标，把坐标单位化
+     * @param x canvas x
+     * @return 单位化的自定义X坐标
      */
-    private float parseX(float x) {
-        return DEFAULT_POINT_RADIUS + x;
+    private float inverseParseX(float x) {
+        return disposeFloat((x - DEFAULT_POINT_RADIUS) / mCoordinateWidth);
+    }
+
+    /**
+     * canvas的Y坐标转换为自定义Y坐标，把坐标单位化
+     * @param y canvas y
+     * @return 单位化的自定义Y坐标
+     */
+    private float inverseParseY(float y) {
+        return disposeFloat((mCoordinateWidth + mHAssistLineY - y) / mCoordinateWidth);
+    }
+
+    /**
+     * 保留两位小数，四舍五入
+     * @param f 原始数
+     * @return 保留两位小数
+     */
+    private float disposeFloat(float f) {
+        BigDecimal bigDecimal = new BigDecimal(f);
+        return bigDecimal.setScale(3, BigDecimal.ROUND_HALF_UP).floatValue();
     }
 
     @Override
@@ -195,11 +229,24 @@ public class BezierView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        setBackgroundColor(getResources().getColor(R.color.grey));
+        setBackgroundColor(getColor(R.color.grey));
         drawCoordinate(canvas);
         drawPoint(canvas);
         drawPointCoordinate(canvas);
         drawPath(canvas);
+    }
+
+    /**
+     * 根据ID获取颜色
+     * @param id id
+     * @return color
+     */
+    private int getColor(int id) {
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return getResources().getColor(id, null);
+        } else {
+            return getResources().getColor(id);
+        }
     }
 
     /**
@@ -239,14 +286,52 @@ public class BezierView extends View {
      * @param canvas canvas
      */
     private void drawPointCoordinate(Canvas canvas) {
+        //测量坐标文本宽度
+        float pointCoordinateWidth1 = mPointPaint1.measureText(getPointCoordinateText(mControlPoints.get(1)));
+        float pointCoordinateWidth2 = mPointPaint2.measureText(getPointCoordinateText(mControlPoints.get(2)));
+        float pointCoordinateWidth3 = mPointPaint3.measureText(getPointCoordinateText(mControlPoints.get(3)));
 
-        canvas.drawText(getPointCoordinateText(mControlPoints.get(1)), 50, 50, mPointPaint1);
-        canvas.drawText(getPointCoordinateText(mControlPoints.get(2)), 50, 100, mPointPaint2);
-        canvas.drawText(getPointCoordinateText(mControlPoints.get(3)), 50, 150, mPointPaint3);
+        //坐标绘制起始X坐标
+        float point1X = (mWidth - pointCoordinateWidth1 - pointCoordinateWidth2 - pointCoordinateWidth3 - COORDINATE_TEXT_SPACING * 2) / 2.0f;
+        float point2X = point1X + pointCoordinateWidth1 + COORDINATE_TEXT_SPACING;
+        float point3X = point2X + pointCoordinateWidth2 + COORDINATE_TEXT_SPACING;
+
+        canvas.drawText(getPointCoordinateText(mControlPoints.get(1)), point1X, 70, mPointPaint1);
+        canvas.drawText(getPointCoordinateText(mControlPoints.get(2)), point2X, 70, mPointPaint2);
+        canvas.drawText(getPointCoordinateText(mControlPoints.get(3)), point3X, 70, mPointPaint3);
     }
 
     private String getPointCoordinateText(PointF point) {
-        return "x:" + point.x + "-y:" + point.y;
+        return "(" + inverseParseX(point.x) + " : " + inverseParseY(point.y) + ")";
+    }
+
+    /**
+     * 获取控制点单位化坐标
+     * 起始点和终点不在此列
+     * @param index 从1开始
+     * @return 控制点单位化坐标
+     */
+    public PointF getControlPoint(int index) {
+        if(index < 1 || index >= mControlPoints.size() - 1) {
+            throw new IllegalArgumentException("参数不在控制点范围内");
+        }
+        PointF point = new PointF();
+        PointF controlPoint = getControlPoint(index);
+        point.x = inverseParseX(controlPoint.x);
+        point.y = inverseParseY(controlPoint.y);
+        return point;
+    }
+
+    /**
+     * 获取所有的单位化控制点
+     * @return 单位化的控制点
+     */
+    public ArrayList<PointF> getControlPoints() {
+        ArrayList<PointF> pointFs = new ArrayList<>();
+        for (PointF point : mControlPoints) {
+            pointFs.add(new PointF(inverseParseX(point.x), inverseParseY(point.y)));
+        }
+        return pointFs;
     }
 
     /**
@@ -323,37 +408,13 @@ public class BezierView extends View {
         return true;
     }
 
-    /**
-     * 判断手指坐标是否在合法区域中
-     * @param x
-     * @param y
-     * @return
-     */
-    private boolean isLegalFingerRegion(float x, float y) {
-        if(mCurPoint != null) {
-            RectF rectF = new RectF(mCurPoint.x - FINGER_RECT_SIZE / 2,
-                    mCurPoint.y - FINGER_RECT_SIZE / 2,
-                    mCurPoint.x + FINGER_RECT_SIZE / 2,
-                    mCurPoint.y + FINGER_RECT_SIZE / 2);
-            if(rectF.contains(x, y)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    float x, y;
     @Override
     public boolean onTouchEvent(MotionEvent event) {
 
         switch (event.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-
-                break;
-
             case MotionEvent.ACTION_MOVE:
-                x = event.getX();
-                y = event.getY();
+                float x = event.getX();
+                float y = event.getY();
                 if(mCurPoint == null) {
                     mCurPoint = getLegalControlPoint(x, y);
                 }
@@ -417,5 +478,4 @@ public class BezierView extends View {
         }
         return points;
     }
-
 }

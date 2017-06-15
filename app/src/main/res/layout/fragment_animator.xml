@@ -1,0 +1,44 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context="com.bruce.bezier.fragment.AnimatorFragment">
+
+    <Button
+        android:id="@+id/btn_start_animator"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAllCaps="false"
+        android:background="@color/colorPrimary"
+        android:text="Start Animation"/>
+
+    <RelativeLayout
+        android:id="@+id/rl_animation_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_horizontal"
+        android:background="@color/background">
+
+        <View
+            android:id="@+id/view_yellow"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="48dp"
+            android:background="@drawable/circle_shape"
+            android:backgroundTint="@color/md_yellow_500"/>
+
+        <View
+            android:id="@+id/view_red"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="48dp"
+            android:layout_marginLeft="16dp"
+            android:layout_toRightOf="@+id/view_yellow"
+            android:background="@drawable/circle_shape"
+            android:backgroundTint="@color/md_red_500"/>
+
+    </RelativeLayout>
+
+</LinearLayout>
